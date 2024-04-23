@@ -1,0 +1,4 @@
+package gocron
+
+func main() {
+}
