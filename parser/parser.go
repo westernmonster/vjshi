@@ -2,8 +2,10 @@ package parser
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
+	"regexp"
 	"time"
 
 	"github.com/chromedp/cdproto/cdp"
@@ -14,12 +16,28 @@ import (
 	"github.com/chromedp/chromedp"
 )
 
-func GrabRecentSales() (err error) {
+var ErrNothingFound = fmt.Errorf("Nothing found.")
+
+func GrabRecentSales() (sales []*Sale, err error) {
+	var jsonStr string
+	if jsonStr, err = fetchAndParseData(); err != nil {
+		return
+	}
+	resData := new(ResData)
+	if err = json.Unmarshal([]byte(jsonStr), &resData); err != nil {
+		return
+	}
+
+	sales = resData.State.LoaderData.Sales
+	return
+}
+
+func fetchAndParseData() (jsonStr string, err error) {
 	url := "https://www.vjshi.com/ranking/sales"
 	options := []chromedp.ExecAllocatorOption{
 		chromedp.Flag("headless", true), // for debug use
 		chromedp.Flag("blink-settings", "imagesEnabled=false"),
-		chromedp.Flag("disable-blink-features", "AutomationControlled"),
+		// chromedp.Flag("disable-blink-features", "AutomationControlled"),
 		chromedp.Flag("enable-automation", false),
 		chromedp.UserAgent(`Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.103 Safari/537.36`),
 	}
@@ -29,7 +47,7 @@ func GrabRecentSales() (err error) {
 	chromeCtx, cancel := chromedp.NewContext(c, chromedp.WithLogf(log.Printf))
 	chromedp.Run(chromeCtx, make([]chromedp.Action, 0, 1)...)
 
-	timeoutCtx, cancel := context.WithTimeout(chromeCtx, 20*time.Second)
+	timeoutCtx, cancel := context.WithTimeout(chromeCtx, 10*time.Second)
 	defer cancel()
 
 	var htmlContent string
@@ -44,16 +62,23 @@ func GrabRecentSales() (err error) {
 		chromedp.Navigate(url),
 		chromedp.WaitVisible(`.nc_1_nocaptcha`, chromedp.ByQuery),
 		dragElement("#nc_1__bg"),
-		chromedp.WaitVisible(`.video-card__list`, chromedp.ByQuery),
-		chromedp.EvaluateAsDevTools(`JSON.stringify({name: "a"})`, &htmlContent),
-		chromedp.OuterHTML(`document.querySelector("body")`, &htmlContent, chromedp.ByJSPath),
+		chromedp.WaitVisible(`.dioa-link`, chromedp.ByQuery),
+		chromedp.Sleep(1*time.Second),
+		chromedp.OuterHTML(`body`, &htmlContent, chromedp.ByQuery),
 	)
 	if err != nil {
 		fmt.Printf("error log: %+v", err)
 		return
 	}
 
-	fmt.Println(htmlContent)
+	pattern := `<script>window.__remixContext =(.*?);</script>`
+	rp := regexp.MustCompile(pattern)
+	data := rp.FindStringSubmatch(htmlContent)
+	if len(data) > 0 {
+		return data[1], nil
+	} else {
+		err = ErrNothingFound
+	}
 
 	return
 }

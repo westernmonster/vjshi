@@ -5,6 +5,7 @@ import (
 	"time"
 	"vjshi/parser"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/urfave/cli/v2"
 )
 
@@ -23,8 +24,14 @@ func main() {
 				Name:    "test",
 				Aliases: []string{"t"},
 				Usage:   "fetch page once, for test using.",
-				Action: func(ctx *cli.Context) error {
-					return parser.GrabRecentSales()
+				Action: func(ctx *cli.Context) (err error) {
+					var sales []*parser.Sale
+					if sales, err = parser.GrabRecentSales(); err != nil {
+						return
+					}
+
+					spew.Dump(sales)
+					return
 				},
 			},
 		},
