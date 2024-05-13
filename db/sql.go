@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"vjshi/model"
 
 	"github.com/charmbracelet/log"
 	_ "github.com/go-sql-driver/mysql"
@@ -19,8 +20,8 @@ func ConnectDB() (node sqalx.Node, err error) {
 	return sqalx.New(db)
 }
 
-func GetSaleByID(c context.Context, node sqalx.Node, id int64) (item *Sale, err error) {
-	item = new(Sale)
+func GetSaleByID(c context.Context, node sqalx.Node, id int64) (item *model.Sale, err error) {
+	item = new(model.Sale)
 	sqlSelect := "SELECT a.id,a.title,a.created_at,a.download_times,a.software_type_name,a.is_recommended,a.software_type,a.seller_id,a.seller_name,a.lic_type,a.keyword,a.sale_time,a.video_id FROM d_sale a WHERE a.id=?"
 
 	if err = node.GetContext(c, item, sqlSelect, id); err != nil {
@@ -35,7 +36,7 @@ func GetSaleByID(c context.Context, node sqalx.Node, id int64) (item *Sale, err 
 	return
 }
 
-func AddSales(c context.Context, node sqalx.Node, item *Sale) (err error) {
+func AddSales(c context.Context, node sqalx.Node, item *model.Sale) (err error) {
 	sqlInsert := "INSERT INTO d_sale( id,title,created_at,download_times,software_type_name,is_recommended,software_type,seller_id,seller_name,lic_type,keyword,sale_time,video_id) VALUES ( ?,?,?,?,?,?,?,?,?,?,?,?,?)"
 
 	if _, err = node.ExecContext(c, sqlInsert, item.ID, item.Title, item.CreatedAt, item.DownloadTimes, item.SoftwareTypeName, item.IsRecommended, item.SoftwareType, item.SellerID, item.SellerName, item.LicType, item.Keyword, item.SaleTime, item.VideoID); err != nil {
@@ -46,7 +47,7 @@ func AddSales(c context.Context, node sqalx.Node, item *Sale) (err error) {
 	return
 }
 
-func UpdateSale(c context.Context, node sqalx.Node, item *Sale) (err error) {
+func UpdateSale(c context.Context, node sqalx.Node, item *model.Sale) (err error) {
 	sqlUpdate := "UPDATE d_sale SET title=?,download_times=?,software_type_name=?,is_recommended=?,software_type=?,seller_id=?,seller_name=?,lic_type=?,keyword=?,sale_time=?,video_id=? WHERE id=?"
 
 	_, err = node.ExecContext(c, sqlUpdate, item.Title, item.DownloadTimes, item.SoftwareTypeName, item.IsRecommended, item.SoftwareType, item.SellerID, item.SellerName, item.LicType, item.Keyword, item.SaleTime, item.VideoID, item.ID)
