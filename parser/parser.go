@@ -1,4 +1,4 @@
-package parser
+package iarser
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"log"
 	"regexp"
 	"time"
+	"vjshi/model"
 
 	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/cdproto/dom"
@@ -18,12 +19,12 @@ import (
 
 var ErrNothingFound = fmt.Errorf("Nothing found.")
 
-func GrabRecentSales() (sales []*Sale, err error) {
+func GrabRecentSales() (sales []*model.SaleDto, err error) {
 	var jsonStr string
 	if jsonStr, err = fetchAndParseData(); err != nil {
 		return
 	}
-	resData := new(ResData)
+	resData := new(model.ResDataDto)
 	if err = json.Unmarshal([]byte(jsonStr), &resData); err != nil {
 		return
 	}
